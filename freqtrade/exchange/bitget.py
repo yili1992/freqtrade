@@ -7,7 +7,7 @@ import ccxt
 from freqtrade.constants import BuySell
 from freqtrade.enums import CandleType, MarginMode, PriceType, TradingMode
 from freqtrade.exceptions import DDosProtection, ExchangeError, OperationalException, TemporaryError
-from freqtrade.exchange import Exchange, date_minus_candles, timeframe_to_minutes
+from freqtrade.exchange import Exchange
 from freqtrade.exchange.common import retrier
 from freqtrade.exchange.types import OHLCVResponse, Tickers
 from freqtrade.util.datetime_helpers import dt_now, dt_ts
