@@ -16,7 +16,7 @@ from freqtrade.util import dt_floor_day, dt_now, dt_ts
 from tests.exchange_online.conftest import EXCHANGE_FIXTURE_TYPE, EXCHANGES
 
 
-@pytest.mark.longrun
+# @pytest.mark.longrun
 class TestCCXTExchange:
     def test_load_markets(self, exchange: EXCHANGE_FIXTURE_TYPE):
         exch, exchangename = exchange
@@ -93,7 +93,10 @@ class TestCCXTExchange:
             pair = "SOL/USDT"
             for trade in trades:
                 market = exch._api.markets[pair]
-                po = exch._api.parse_trade(trade)
+                if exchange_name == 'bitget':
+                    po = exch._api.parse_trade(trade, market)
+                else:
+                    po = exch._api.parse_trade(trade)
                 (trade, market)
                 assert isinstance(po["id"], str)
                 assert isinstance(po["side"], str)
@@ -144,6 +147,14 @@ class TestCCXTExchange:
         assert "quoteVolume" in tickers[pair]
         if EXCHANGES[exchangename].get("hasQuoteVolumeFutures"):
             assert tickers[pair]["quoteVolume"] is not None
+
+    def test_ccxt_fetch_positions_futures(self, exchange_futures: EXCHANGE_FIXTURE_TYPE):
+        exch, exchangename = exchange_futures
+        if not exch or exchangename not in ("bitget"):
+            return
+
+        positions = exch.fetch_positions()
+        assert positions == []
 
     def test_ccxt_fetch_ticker(self, exchange: EXCHANGE_FIXTURE_TYPE):
         exch, exchangename = exchange
@@ -335,21 +346,27 @@ class TestCCXTExchange:
             or (rate["open"].min() != rate["open"].max())
         )
 
-    def test_ccxt_fetch_mark_price_history(self, exchange_futures: EXCHANGE_FIXTURE_TYPE):
+    @pytest.mark.parametrize(
+        "expected_tf",
+        [
+            '1h',
+            '30m',
+            '4h',
+        ],
+    )
+    def test_ccxt_fetch_mark_price_history(self, exchange_futures: EXCHANGE_FIXTURE_TYPE, expected_tf):
         exchange, exchangename = exchange_futures
         pair = EXCHANGES[exchangename].get("futures_pair", EXCHANGES[exchangename]["pair"])
         since = int((datetime.now(timezone.utc) - timedelta(days=5)).timestamp() * 1000)
-        pair_tf = (pair, "1h", CandleType.MARK)
+        pair_tf = (pair, expected_tf, CandleType.MARK)
 
         mark_ohlcv = exchange.refresh_latest_ohlcv([pair_tf], since_ms=since, drop_incomplete=False)
 
         assert isinstance(mark_ohlcv, dict)
-        expected_tf = "1h"
         mark_candles = mark_ohlcv[pair_tf]
 
         this_hour = timeframe_to_prev_date(expected_tf)
         prev_hour = timeframe_to_prev_date(expected_tf, this_hour - timedelta(minutes=1))
-
         assert mark_candles[mark_candles["date"] == prev_hour].iloc[0]["open"] != 0.0
         assert mark_candles[mark_candles["date"] == this_hour].iloc[0]["open"] != 0.0
 

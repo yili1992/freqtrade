@@ -1710,6 +1710,8 @@ class Exchange:
             symbols = []
             if pair:
                 symbols.append(pair)
+            if symbols == []:
+                symbols = None
             positions: List[CcxtPosition] = self._api.fetch_positions(symbols)
             self._log_exchange_response("fetch_positions", positions)
             return positions
@@ -3123,6 +3125,9 @@ class Exchange:
     async def get_market_leverage_tiers(self, symbol: str) -> Tuple[str, List[Dict]]:
         """Leverage tiers per symbol"""
         try:
+            # if self.trading_mode == 'futures' and self.name == 'Bitget':
+            #     tier = await self._api_async.fetch_market_leverage_tiers(symbol, params={'productType': 'USDT-FUTURES'})
+            # else:
             tier = await self._api_async.fetch_market_leverage_tiers(symbol)
             return symbol, tier
         except ccxt.DDoSProtection as e:
